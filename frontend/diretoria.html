@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel da Diretoria - Sistema Escolar</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/theme.js" defer></script>
+    <script src="js/auth.js" defer></script>
+    <script src="js/diretoria.js" defer></script>
+</head>
+<body>
+    <header class="topbar">
+        <div class="brand">🏛️ Diretoria & Secretaria Acadêmica</div>
+        <div class="top-actions">
+            <span id="usuario-logado" style="font-size:0.9rem; color:var(--text-muted);"></span>
+            <button id="btn-tema" class="btn-secondary btn-sm" onclick="alternarTema()">☀️ Modo Claro</button>
+            <button class="btn-sm" onclick="logout()">Sair</button>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- 1. Emissão de Documentos em PDF (CRUD Completo) -->
+        <div class="grid-2">
+            <div class="card">
+                <h2 id="titulo-form-doc">Emitir Documento / Boletim (PDF)</h2>
+                <form id="form-documento">
+                    <input type="hidden" id="doc-id">
+                    <label>Selecionar Aluno</label>
+                    <select id="doc-aluno" required></select>
+                    <label>Tipo de Documento</label>
+                    <select id="doc-tipo" required>
+                        <option value="Comprovante de Matrícula">Comprovante de Matrícula</option>
+                        <option value="Boletim Escolar">Boletim Escolar</option>
+                        <option value="Histórico Escolar">Histórico Escolar</option>
+                        <option value="Declaração de Frequência">Declaração de Frequência</option>
+                        <option value="Certificado de Conclusão">Certificado de Conclusão</option>
+                    </select>
+                    <label>Período Letivo</label>
+                    <input type="text" id="doc-periodo" required placeholder="Ex: 2026/1">
+                    <label>Frequência do Aluno (%)</label>
+                    <input type="number" step="0.01" id="doc-frequencia" value="100" required>
+                    <label>Média Geral (Opcional - para Boletim/Histórico)</label>
+                    <input type="number" step="0.01" id="doc-media" placeholder="Ex: 8.75">
+                    <label>Conteúdo / Notas / Observações Oficiais</label>
+                    <textarea id="doc-conteudo" rows="3" required placeholder="Digite as notas do boletim, disciplinas ou texto da declaração..."></textarea>
+                    <div style="display:flex; gap:0.5rem; margin-top:1rem;">
+                        <button type="submit">Salvar Documento</button>
+                        <button type="button" class="btn-secondary" onclick="limparFormDoc()">Cancelar Edição</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 2. Registrar Falta de Aluno -->
+            <div class="card">
+                <h2>Registrar Chamada / Falta</h2>
+                <form id="form-falta">
+                    <label>Aluno</label>
+                    <select id="falta-aluno" required></select>
+                    <label>Disciplina</label>
+                    <input type="text" id="falta-disciplina" required placeholder="Ex: Desenvolvimento Web">
+                    <label>Data da Ausência</label>
+                    <input type="date" id="falta-data" required>
+                    <label>Quantidade de Períodos/Aulas</label>
+                    <input type="number" id="falta-qtd" value="1" min="1" required>
+                    <button type="submit" style="margin-top:1rem;">Marcar Falta</button>
+                </form>
+
+                <h3 style="margin-top:2rem;">Novo Evento no Calendário</h3>
+                <form id="form-calendario">
+                    <input type="text" id="cal-titulo" placeholder="Título do Evento / Prova / Feriado" required style="margin-bottom:0.5rem;">
+                    <div style="display:flex; gap:0.5rem; margin-bottom:0.5rem;">
+                        <input type="date" id="cal-data" required>
+                        <select id="cal-categoria">
+                            <option value="Prova">Prova</option>
+                            <option value="Evento">Evento</option>
+                            <option value="Feriado">Feriado</option>
+                            <option value="Reunião">Reunião</option>
+                            <option value="Prazo Secretaria">Prazo Secretaria</option>
+                        </select>
+                    </div>
+                    <input type="text" id="cal-desc" placeholder="Descrição breve" required style="margin-bottom:0.5rem;">
+                    <button type="submit" class="btn-sm">Publicar no Calendário</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Lista de Documentos Emitidos -->
+        <div class="card">
+            <h2>Documentos Emitidos (Prontos para Imprimir PDF)</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Aluno</th>
+                            <th>Tipo</th>
+                            <th>Período</th>
+                            <th>Frequência</th>
+                            <th>Média</th>
+                            <th>Ações (CRUD + PDF)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-documentos"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Controle de Faltas e Justificativas dos Alunos -->
+        <div class="card">
+            <h2>Faltas Registradas & Justificativas Anexadas pelos Alunos</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Aluno</th>
+                            <th>Disciplina / Data</th>
+                            <th>Aulas</th>
+                            <th>Justificativa e Anexo do Aluno</th>
+                            <th>Status</th>
+                            <th>Avaliar / Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-faltas"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Atendimento de Solicitações dos Alunos -->
+        <div class="card">
+            <h2>Solicitações de Autoatendimento dos Alunos</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Aluno</th>
+                            <th>Serviço Solicitado</th>
+                            <th>Observações</th>
+                            <th>Status</th>
+                            <th>Resposta da Diretoria</th>
+                            <th>Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-solicitacoes"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Área invisível na tela, visível apenas ao gerar PDF/Impressão -->
+        <div id="area-impressao-pdf"></div>
+    </main>
+</body>
+</html>

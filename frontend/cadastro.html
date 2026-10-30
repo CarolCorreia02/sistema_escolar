@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <title>Cadastro - Portal Escolar</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/theme.js" defer></script>
+    <script src="js/auth.js" defer></script>
+    <script src="js/cadastro.js" defer></script>
+</head>
+<body>
+    <header class="topbar">
+        <div class="brand">🎓 EduDocs & Portal Escolar</div>
+        <button id="btn-tema" class="btn-secondary" onclick="alternarTema()">☀️ Modo Claro</button>
+    </header>
+    <main class="container" style="max-width: 480px; margin-top: 2.5rem;">
+        <div class="card">
+            <h2>Criar Conta Acadêmica</h2>
+            <form id="form-cadastro">
+                <label>Nome Completo</label>
+                <input type="text" id="nome" required>
+                <label>E-mail</label>
+                <input type="email" id="email" required>
+                <label>Senha</label>
+                <input type="password" id="senha" required>
+                <label>Perfil de Usuário</label>
+                <select id="perfil">
+                    <option value="aluno">Aluno / Estudante</option>
+                    <option value="diretoria">Diretoria / Secretaria</option>
+                </select>
+                <label>Matrícula (Opcional - gerada automaticamente se vazio)</label>
+                <input type="text" id="matricula" placeholder="Ex: 20261099">
+                <label>Turma / Setor</label>
+                <input type="text" id="turma" placeholder="Ex: 3º Ano Técnico">
+                <button type="submit" style="width:100%; margin-top:1.2rem;">Cadastrar</button>
+            </form>
+            <p id="msg-retorno" style="margin-top:0.8rem; font-size:0.9rem;"></p>
+            <p style="margin-top:1rem; font-size:0.9rem;">
+                <a href="login.html" style="color:var(--accent);">Voltar para o Login</a>
+            </p>
+        </div>
+    </main>
+</body>
+</html>

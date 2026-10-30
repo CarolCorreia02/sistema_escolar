@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <title>Portal do Aluno - Autoatendimento Escolar</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/theme.js" defer></script>
+    <script src="js/auth.js" defer></script>
+    <script src="js/aluno.js" defer></script>
+</head>
+<body>
+    <header class="topbar">
+        <div class="brand">🎒 Portal do Aluno — Autoatendimento</div>
+        <div class="top-actions">
+            <span id="usuario-logado" style="font-size:0.9rem; color:var(--text-muted);"></span>
+            <button id="btn-tema" class="btn-secondary btn-sm" onclick="alternarTema()">☀️ Modo Claro</button>
+            <button class="btn-sm" onclick="logout()">Sair</button>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="grid-2">
+            <!-- 1. Autoatendimento: Solicitar Serviços -->
+            <div class="card">
+                <h2>Autoatendimento: Solicitar Serviço / Documento</h2>
+                <form id="form-solicitacao">
+                    <label>Serviço Oferecido pela Escola</label>
+                    <select id="sol-servico" required>
+                        <option value="Comprovante de Matrícula Atualizado">Comprovante de Matrícula Atualizado</option>
+                        <option value="2ª Via de Histórico Escolar">2ª Via de Histórico Escolar</option>
+                        <option value="Boletim Escolar Assinado">Boletim Escolar Assinado</option>
+                        <option value="Declaração de Frequência para Estágio">Declaração de Frequência para Estágio</option>
+                        <option value="Revisão de Notas / Prova">Revisão de Notas / Prova</option>
+                        <option value="2ª Via de Carteirinha Estudantil">2ª Via de Carteirinha Estudantil</option>
+                    </select>
+                    <label>Observações / Finalidade</label>
+                    <textarea id="sol-obs" rows="3" placeholder="Explique detalhes da sua solicitação..."></textarea>
+                    <button type="submit" style="margin-top:1rem;">Enviar Solicitação</button>
+                </form>
+            </div>
+
+            <!-- 2. Calendário Escolar e Avisos -->
+            <div class="card">
+                <h2>📅 Calendário Escolar & Prazos</h2>
+                <div id="lista-calendario"></div>
+            </div>
+        </div>
+
+        <!-- 3. Meus Documentos e Boletins Prontos para Imprimir PDF -->
+        <div class="card">
+            <h2>📄 Meus Documentos, Boletins e Histórico (Download PDF)</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Documento</th>
+                            <th>Período</th>
+                            <th>Frequência</th>
+                            <th>Média</th>
+                            <th>Resumo</th>
+                            <th>Impressão / PDF</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-meus-documentos"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 4. Minhas Faltas e Envio de Justificativa/Atestado -->
+        <div class="card">
+            <h2>🕒 Minhas Faltas & Envio de Justificativa</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Disciplina</th>
+                            <th>Data</th>
+                            <th>Aulas</th>
+                            <th>Minha Justificativa / Anexo</th>
+                            <th>Status na Diretoria</th>
+                            <th>Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-minhas-faltas"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 5. Acompanhamento de Solicitações -->
+        <div class="card">
+            <h2>📋 Minhas Solicitações de Autoatendimento</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Serviço</th>
+                            <th>Observações</th>
+                            <th>Status</th>
+                            <th>Retorno da Diretoria</th>
+                            <th>Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-minhas-solicitacoes"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="area-impressao-pdf"></div>
+    </main>
+</body>
+</html>

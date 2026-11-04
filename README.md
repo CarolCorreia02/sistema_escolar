@@ -1,33 +1,46 @@
-# EduDocs & Portal Escolar - Gestão Acadêmica e Autoatendimento
+# Sistema de Gestão Escolar
 
-## 1. Problema Identificado e Público Afetado
-Em muitas instituições de ensino, a solicitação e emissão de documentos escolares (declarações de matrícula, históricos, boletins e frequência), bem como o controle de faltas e entrega de atestados/justificativas, ainda ocorrem de forma manual ou presencial na secretaria. Isso gera filas, lentidão no atendimento, perda de prazos e sobrecarga administrativa para a diretoria, afetando diretamente alunos, responsáveis e a equipe diretiva/secretaria.
+Sistema web desenvolvido para otimizar e centralizar a comunicação acadêmica, o controle de frequência, a solicitação de documentos e o gerenciamento institucional entre alunos e diretoria.
 
-## 2. Proposta de Solução
-Desenvolver um sistema web integrado onde a Diretoria possa gerenciar alunos, lançar e abonar faltas, aprovar solicitações, manter o calendário escolar e emitir documentos oficiais prontos para impressão/PDF. Paralelamente, os Alunos contam com um portal de autoatendimento para solicitar documentos, visualizar seu boletim/frequência, anexar justificativas de ausência e consultar o calendário letivo, contando ainda com personalização de tema (Modo Claro e Modo Escuro).
+# Contexto e Problema Identificado
 
-## 3. Tipos de Usuários e Permissões
-* Diretoria: Acesso total aos CRUDs administrativos. Pode cadastrar/editar/excluir documentos e boletins, registrar e atualizar faltas, aprovar/concluir solicitações de alunos e gerenciar eventos do calendário escolar.
-* Aluno: Acesso ao portal do estudante. Pode visualizar seus documentos/boletins emitidos, consultar suas faltas e enviar justificativas/atestados, abrir e cancelar solicitações de serviços de autoatendimento e consultar o calendário escolar.
+Instituições de ensino frequentemente enfrentam desorganização e atrasos no atendimento a solicitações cotidianas de estudantes (declarações, históricos e justificativas de faltas), além de ruídos na comunicação de datas letivas e acompanhamento de frequência. 
 
-## 4. Fluxo Básico de Funcionamento
-1. O usuário realiza o cadastro ou login no sistema.
-2. O back-end valida as credenciais, gera um token JWT contendo o `id` e o `perfil` (`diretoria` ou `aluno`) e retorna ao front-end.
-3. O front-end redireciona automaticamente para `diretoria.html` ou `aluno.html` e aplica a preferência de tema (Claro/Escuro).
-4. Todas as operações subsequentes passam pelos middlewares de autenticação e autorização na API REST antes de persistirem no banco de dados MySQL.
+**Público afetado:** 
+* Alunos da instituição.
+* Equipe pedagógica e administrativa (Diretoria/Secretaria).
 
-## 5. Tecnologias Utilizadas
-* Front-end: HTML5, CSS3 (Variáveis CSS para Dark/Light Mode), JavaScript (DOM, Fetch API, `window.print` para geração de PDF).
-* Back-end: Node.js, Express.js, JSON Web Token (`jsonwebtoken`), `bcryptjs` (hash de senhas), `dotenv`.
-* Banco de Dados: MySQL (`mysql2/promise`).
+**Solução proposta:**
+Um portal web integrado com controle de permissões que permite aos estudantes acompanhar notas/faltas e solicitar serviços, enquanto a diretoria gerencia solicitações, faltas e o calendário de eventos em tempo real[cite: 1, 3].
 
-## 6. Instalação e Execução
-1. Clone o repositório e execute o script `sql/sistema_escolar.sql` no MySQL Workbench.
-2. Na pasta `backend/`, copie `.env.example` para `.env` e configure suas credenciais do MySQL.
-3. Instale as dependências e inicie o servidor:
-   ```bash
-   cd backend
-   npm init -y
-   npm install express mysql2 dotenv cors
-   npm run seed
-   npm start
+# Perfis de Usuário e Permissões
+
+* **Aluno:** Visualização de calendário escolar, acompanhamento de faltas registradas e solicitação de documentos/serviços escolares.
+* **Diretoria:** Gestão de solicitações acadêmicas, registro/justificativa de faltas, atualização de calendário e acompanhamento geral de alunos.
+
+# Tecnologias Utilizadas
+
+* **Front-end:** HTML5, CSS3 e JavaScript Vanilla (Manipulação de DOM e API Fetch).
+* **Back-end:** Node.js, Express[cite: 1, 2].
+* **Banco de Dados:** MySQL com driver `mysql2`.
+* **Autenticação:** JSON Web Token (JWT) e proteção de senhas com algoritmo de hash.
+
+# Banco de Dados
+
+O banco relacional conta com integridade referencial via chaves primárias e estrangeiras. O script completo de criação das tabelas e dados iniciais está disponível em:
+* `sql/sistema_escolar.sql`
+
+# Como Executar o Projeto
+
+# Pré-requisitos
+* Node.js instalado (v16 ou superior).
+* Servidor MySQL em execução (ex.: via XAMPP, Workbench ou Docker).
+
+# 1. Configurar o Banco de Dados
+Importe o arquivo `sql/sistema_escolar.sql` no seu banco de dados MySQL para criar o banco `sistema_escolar` e suas tabelas relacionadas.
+
+### 2. Configurar o Back-end
+Entre na pasta do back-end e instale as dependências:
+```bash
+cd backend
+npm install

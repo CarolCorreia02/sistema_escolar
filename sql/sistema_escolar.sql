@@ -64,3 +64,19 @@ CREATE TABLE calendario_eventos (
     categoria ENUM('Prova', 'Feriado', 'Reunião', 'Evento', 'Prazo Secretaria') NOT NULL,
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+USE sistema_escolar;
+
+-- Insere ou atualiza os usuários solicitados
+USE sistema_escolar;
+
+INSERT INTO usuarios (nome, email, senha, perfil, matricula, turma) VALUES
+('Diretoria', 'carolinacorreia0210+diretoria@gmail.com', '$2a$10$wK1FmR7aZqF7gA.k0c87ueG/e1xQd7sIqEwK.aE4QoK6hK2c2H0q6', 'diretoria', 'DIR-100', 'Direção Geral'),
+('Aluno', 'carolinacorreia0210+aluno@gmail.com', '$2a$10$V6m1L6jFzL.3g8z4b8DxeO/b7zC4p8s9aQ2yX5e8wN3vR1m7k9uLe', 'aluno', 'ALU-200', '3º Ano Técnico')
+AS novo
+ON DUPLICATE KEY UPDATE 
+    nome = novo.nome, 
+    senha = novo.senha, 
+    perfil = novo.perfil;
+    
+    

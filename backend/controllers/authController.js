@@ -1,80 +1,127 @@
-const pool = require('../database/conexao');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const pool = require('../database/conexao');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'chave_secreta_escolar_jwt_2026';
+function emailValido(email) {
+    return typeof email === 'string' && email.length <= 180 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
 
-exports.cadastrar = async (req, res) => {
+async function cadastrar(req, res, next) {
     try {
-        const { nome, email, senha, perfil, matricula, turma } = req.body;
-        if (!nome || !email || !senha) {
-            return res.status(400).json({ erro: 'Nome, e-mail e senha são obrigatórios.' });
+        const { nome, email, senha, nivel, codigo_diretoria, turma, cpf, data_nascimento } = req.body;
+
+        if (typeof nome !== 'string' || nome.trim().length < 3 || nome.trim().length > 120 ||
+            !emailValido(email) || typeof senha !== 'string' || senha.length < 6) {
+            return res.status(400).json({
+                mensagem: 'Preencha nome completo (mínimo 3 letras), e-mail válido e senha com no mínimo 6 caracteres.'
+            });
         }
 
-        const [existente] = await pool.query('SELECT id FROM usuarios WHERE email = ?', [email]);
-        if (existente.length > 0) {
-            return res.status(400).json({ erro: 'Este e-mail já está cadastrado.' });
+        // Sistema de Verificação de Nível no Cadastro:
+        // Se escolher 'diretoria', exige o código de verificação da instituição (padrão DIRET2026)
+        let nivelEscolhido = 'aluno';
+        if (nivel === 'diretoria') {
+            const codigoEsperado = process.env.CODIGO_DIRETORIA || 'DIRET2026';
+            if (codigo_diretoria !== codigoEsperado) {
+                return res.status(403).json({
+                    mensagem: 'Código de verificação da Diretoria inválido. Para teste, utilize: DIRET2026'
+                });
+            }
+            nivelEscolhido = 'diretoria';
         }
 
-        const senhaHash = await bcrypt.hash(senha, 10);
-        const perfilFinal = perfil === 'diretoria' ? 'diretoria' : 'aluno';
-        const matriculaFinal = matricula || (perfilFinal === 'aluno' ? 'MAT-' + Math.floor(100000 + Math.random() * 900000) : 'DIR-' + Math.floor(100 + Math.random() * 900));
+        const senhaProtegida = await bcrypt.hash(senha, 12);
+        const matriculaGerada = nivelEscolhido === 'diretoria'
+            ? 'DIR-' + Math.floor(1000 + Math.random() * 9000)
+            : '2026' + Math.floor(1000 + Math.random() * 9000);
 
-        const [resultado] = await pool.query(
-            'INSERT INTO usuarios (nome, email, senha, perfil, matricula, turma) VALUES (?, ?, ?, ?, ?, ?)',
-            [nome, email, senhaHash, perfilFinal, matriculaFinal, turma || 'Ensino Médio']
+        const turmaPadrao = nivelEscolhido === 'diretoria'
+            ? 'Direção Geral'
+            : (turma && turma.trim() ? turma.trim() : '3º Ano A - Ensino Médio Técnico');
+
+        const [resultado] = await pool.execute(
+            `INSERT INTO usuarios (nome, email, senha, nivel, matricula, turma, cpf, data_nascimento)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                nome.trim(),
+                email.trim().toLowerCase(),
+                senhaProtegida,
+                nivelEscolhido,
+                matriculaGerada,
+                turmaPadrao,
+                cpf ? cpf.trim() : '000.000.000-00',
+                data_nascimento || '2008-01-01'
+            ]
         );
 
-        res.status(201).json({ mensagem: 'Usuário cadastrado com sucesso!', id: resultado.insertId });
-    } catch (erro) {
-        res.status(500).json({ erro: 'Erro ao realizar cadastro.', detalhes: erro.message });
-    }
-};
+        // Se for um novo aluno, cria disciplinas iniciais no boletim para facilitar o uso imediato
+        if (nivelEscolhido === 'aluno') {
+            const disciplinasPadrao = [
+                ['Desenvolvimento Web', 100],
+                ['Banco de Dados', 80],
+                ['Matemática Aplicada', 120],
+                ['Língua Portuguesa', 120]
+            ];
+            for (const [disc, carga] of disciplinasPadrao) {
+                await pool.execute(
+                    'INSERT INTO notas (aluno_id, disciplina, bim1, bim2, bim3, bim4, carga_horaria) VALUES (?, ?, 0, 0, 0, 0, ?)',
+                    [resultado.insertId, disc, carga]
+                );
+            }
+        }
 
-exports.login = async (req, res) => {
+        return res.status(201).json({
+            mensagem: 'Cadastro realizado com sucesso! Matrícula gerada: ' + matriculaGerada,
+            id: resultado.insertId,
+            matricula: matriculaGerada
+        });
+    } catch (erro) {
+        if (erro.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({ mensagem: 'Este e-mail já está cadastrado no sistema.' });
+        }
+        next(erro);
+    }
+}
+
+async function login(req, res, next) {
     try {
         const { email, senha } = req.body;
-        const [usuarios] = await pool.query('SELECT * FROM usuarios WHERE email = ?', [email]);
-
-        if (usuarios.length === 0) {
-            return res.status(401).json({ erro: 'Credenciais inválidas.' });
+        if (!emailValido(email) || typeof senha !== 'string' || senha.length === 0) {
+            return res.status(400).json({ mensagem: 'Informe seu e-mail e senha.' });
         }
 
-        const usuario = usuarios[0];
-        const senhaValida = await bcrypt.compare(senha, usuario.senha);
-        if (!senhaValida) {
-            return res.status(401).json({ erro: 'Credenciais inválidas.' });
+        const [usuarios] = await pool.execute('SELECT * FROM usuarios WHERE email = ?', [email.trim().toLowerCase()]);
+        if (usuarios.length === 0 || !(await bcrypt.compare(senha, usuarios[0].senha))) {
+            return res.status(401).json({ mensagem: 'E-mail ou senha incorretos.' });
         }
 
+        const u = usuarios[0];
+        const segredo = process.env.JWT_SECRET || 'chave_secreta_super_segura_eduportal_2026_jwt';
         const token = jwt.sign(
-            { id: usuario.id, nome: usuario.nome, perfil: usuario.perfil, matricula: usuario.matricula, turma: usuario.turma },
-            JWT_SECRET,
-            { expiresIn: '8h' }
+            { id: u.id, email: u.email, nivel: u.nivel },
+            segredo,
+            { algorithm: 'HS256', expiresIn: process.env.JWT_EXPIRES_IN || '4h' }
         );
 
-        res.json({
+        return res.json({
+            mensagem: 'Login realizado com sucesso.',
             token,
             usuario: {
-                id: usuario.id,
-                nome: usuario.nome,
-                email: usuario.email,
-                perfil: usuario.perfil,
-                matricula: usuario.matricula,
-                turma: usuario.turma
+                id: u.id,
+                nome: u.nome,
+                email: u.email,
+                nivel: u.nivel,
+                matricula: u.matricula,
+                turma: u.turma
             }
         });
     } catch (erro) {
-        res.status(500).json({ erro: 'Erro ao processar login.', detalhes: erro.message });
+        next(erro);
     }
-};
+}
 
-exports.listarAlunos = async (req, res) => {
-    try {
-        const [alunos] = await pool.query(
-            "SELECT id, nome, email, matricula, turma FROM usuarios WHERE perfil = 'aluno' ORDER BY nome ASC"
-        );
-        res.json(alunos);
-    } catch (erro) {
-        res.status(500).json({ erro: 'Erro ao listar alunos.' });
-    }
-};
+async function perfil(req, res) {
+    return res.json(req.usuario);
+}
+
+module.exports = { cadastrar, login, perfil };

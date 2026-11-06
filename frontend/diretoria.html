@@ -1,152 +1,309 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="dark">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <title>Painel da Diretoria - Sistema Escolar</title>
-    <link rel="stylesheet" href="css/style.css">
-    <script src="js/theme.js" defer></script>
-    <script src="js/auth.js" defer></script>
-    <script src="js/diretoria.js" defer></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel da Diretoria • EduPortal</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/auth.js" defer></script>
+  <script src="js/diretoria.js" defer></script>
 </head>
 <body>
-    <header class="topbar">
-        <div class="brand">🏛️ Diretoria & Secretaria Acadêmica</div>
-        <div class="top-actions">
-            <span id="usuario-logado" style="font-size:0.9rem; color:var(--text-muted);"></span>
-            <button id="btn-tema" class="btn-secondary btn-sm" onclick="alternarTema()">☀️ Modo Claro</button>
-            <button class="btn-sm" onclick="logout()">Sair</button>
+  <div class="top-bar">
+    <span>🏛️ Área Exclusiva da Diretoria & Secretaria Acadêmica</span>
+    <span>Banco de Dados MySQL + Autenticação JWT Ativos</span>
+  </div>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <span class="brand-mark">E</span>
+        <div>
+          <div>EduPortal • Diretoria</div>
+          <small style="font-size: 0.78rem; font-weight: 400; opacity: 0.85;">Emissão Automática de Documentos, Frequência e Boletim Online</small>
         </div>
-    </header>
+      </div>
+      <div class="header-user-area">
+        <span class="role-pill">DIRETORIA</span>
+        <span data-nome-usuario>Diretoria</span>
+        <button type="button" class="btn btn-accent btn-small" data-logout>Sair</button>
+      </div>
+    </div>
+  </header>
 
-    <main class="container">
-        <!-- 1. Emissão de Documentos em PDF (CRUD Completo) -->
-        <div class="grid-2">
-            <div class="card">
-                <h2 id="titulo-form-doc">Emitir Documento / Boletim (PDF)</h2>
-                <form id="form-documento">
-                    <input type="hidden" id="doc-id">
-                    <label>Selecionar Aluno</label>
-                    <select id="doc-aluno" required></select>
-                    <label>Tipo de Documento</label>
-                    <select id="doc-tipo" required>
-                        <option value="Comprovante de Matrícula">Comprovante de Matrícula</option>
-                        <option value="Boletim Escolar">Boletim Escolar</option>
-                        <option value="Histórico Escolar">Histórico Escolar</option>
-                        <option value="Declaração de Frequência">Declaração de Frequência</option>
-                        <option value="Certificado de Conclusão">Certificado de Conclusão</option>
-                    </select>
-                    <label>Período Letivo</label>
-                    <input type="text" id="doc-periodo" required placeholder="Ex: 2026/1">
-                    <label>Frequência do Aluno (%)</label>
-                    <input type="number" step="0.01" id="doc-frequencia" value="100" required>
-                    <label>Média Geral (Opcional - para Boletim/Histórico)</label>
-                    <input type="number" step="0.01" id="doc-media" placeholder="Ex: 8.75">
-                    <label>Conteúdo / Notas / Observações Oficiais</label>
-                    <textarea id="doc-conteudo" rows="3" required placeholder="Digite as notas do boletim, disciplinas ou texto da declaração..."></textarea>
-                    <div style="display:flex; gap:0.5rem; margin-top:1rem;">
-                        <button type="submit">Salvar Documento</button>
-                        <button type="button" class="btn-secondary" onclick="limparFormDoc()">Cancelar Edição</button>
-                    </div>
-                </form>
+  <main class="container" style="padding-top: 1.5rem; padding-bottom: 3rem;">
+    <section class="stats-grid no-print">
+      <div class="stat-card">
+        <div class="stat-label">Alunos Cadastrados</div>
+        <div class="stat-value" id="stat-total-alunos">0</div>
+      </div>
+      <div class="stat-card terracotta">
+        <div class="stat-label">Documentos Solicitados (Pendentes)</div>
+        <div class="stat-value" id="stat-docs-pendentes">0</div>
+      </div>
+      <div class="stat-card teal">
+        <div class="stat-label">Frequência Média Escolar</div>
+        <div class="stat-value" id="stat-freq-media">100%</div>
+      </div>
+      <div class="stat-card burgundy">
+        <div class="stat-label">Justificativas em Análise</div>
+        <div class="stat-value" id="stat-faltas-analise">0</div>
+      </div>
+    </section>
+
+    <nav class="tabs-nav no-print">
+      <button type="button" class="tab-btn active" data-aba="documentos">📄 Gerador Automático de Documentos</button>
+      <button type="button" class="tab-btn" data-aba="solicitacoes">📥 Documentos Solicitados pelos Alunos</button>
+      <button type="button" class="tab-btn" data-aba="faltas">📅 Controle de Faltas e Justificativas</button>
+      <button type="button" class="tab-btn" data-aba="boletim">📊 Boletim Online (Lançar Notas)</button>
+      <button type="button" class="tab-btn" data-aba="avisos">📢 Mural de Comunicados</button>
+    </nav>
+
+    <!-- ABA 1: GERADOR AUTOMÁTICO DE DOCUMENTOS -->
+    <section id="aba-documentos" class="painel-aba">
+      <div class="grid-2">
+        <div class="card no-print">
+          <div class="card-title">Gerar Documento Oficial</div>
+          <p class="card-subtitle">
+            Escolha um aluno cadastrado: o documento será montado automaticamente com frequência, histórico, notas e matrícula.
+          </p>
+          <form id="form-gerar-documento">
+            <div class="form-group">
+              <label for="doc-aluno-id">Selecionar Aluno Cadastrado</label>
+              <select id="doc-aluno-id" required></select>
             </div>
-
-            <!-- 2. Registrar Falta de Aluno -->
-            <div class="card">
-                <h2>Registrar Chamada / Falta</h2>
-                <form id="form-falta">
-                    <label>Aluno</label>
-                    <select id="falta-aluno" required></select>
-                    <label>Disciplina</label>
-                    <input type="text" id="falta-disciplina" required placeholder="Ex: Desenvolvimento Web">
-                    <label>Data da Ausência</label>
-                    <input type="date" id="falta-data" required>
-                    <label>Quantidade de Períodos/Aulas</label>
-                    <input type="number" id="falta-qtd" value="1" min="1" required>
-                    <button type="submit" style="margin-top:1rem;">Marcar Falta</button>
-                </form>
-
-                <h3 style="margin-top:2rem;">Novo Evento no Calendário</h3>
-                <form id="form-calendario">
-                    <input type="text" id="cal-titulo" placeholder="Título do Evento / Prova / Feriado" required style="margin-bottom:0.5rem;">
-                    <div style="display:flex; gap:0.5rem; margin-bottom:0.5rem;">
-                        <input type="date" id="cal-data" required>
-                        <select id="cal-categoria">
-                            <option value="Prova">Prova</option>
-                            <option value="Evento">Evento</option>
-                            <option value="Feriado">Feriado</option>
-                            <option value="Reunião">Reunião</option>
-                            <option value="Prazo Secretaria">Prazo Secretaria</option>
-                        </select>
-                    </div>
-                    <input type="text" id="cal-desc" placeholder="Descrição breve" required style="margin-bottom:0.5rem;">
-                    <button type="submit" class="btn-sm">Publicar no Calendário</button>
-                </form>
+            <div class="form-group">
+              <label for="doc-tipo">Tipo de Documento</label>
+              <select id="doc-tipo" required>
+                <option value="Declaração de Frequência">Declaração de Frequência</option>
+                <option value="Histórico Escolar">Histórico Escolar Completo</option>
+                <option value="Comprovante de Matrícula">Comprovante de Matrícula</option>
+                <option value="Boletim Escolar Oficial">Boletim Escolar Oficial</option>
+              </select>
             </div>
+            <div class="form-group">
+              <label for="doc-observacao">Observação / Despacho da Diretoria (Opcional)</label>
+              <textarea id="doc-observacao" rows="3" placeholder="Ex.: Documento válido por 90 dias com assinatura digital."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block" style="margin-bottom: 0.6rem;">
+              Emitir e Enviar para o Portal do Aluno
+            </button>
+            <button type="button" id="btn-imprimir-doc" class="btn btn-teal btn-block">
+              🖨️ Imprimir / Salvar Documento em PDF
+            </button>
+          </form>
         </div>
 
-        <!-- Lista de Documentos Emitidos -->
         <div class="card">
-            <h2>Documentos Emitidos (Prontos para Imprimir PDF)</h2>
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Código</th>
-                            <th>Aluno</th>
-                            <th>Tipo</th>
-                            <th>Período</th>
-                            <th>Frequência</th>
-                            <th>Média</th>
-                            <th>Ações (CRUD + PDF)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabela-documentos"></tbody>
-                </table>
-            </div>
+          <div class="card-title no-print">
+            <span>Pré-visualização Automática em Tempo Real</span>
+            <span class="badge badge-teal">Dados sincronizados com o MySQL</span>
+          </div>
+          <div id="container-documento-gerado"></div>
         </div>
+      </div>
+    </section>
 
-        <!-- Controle de Faltas e Justificativas dos Alunos -->
+    <!-- ABA 2: SOLICITAÇÕES DE DOCUMENTOS DOS ALUNOS -->
+    <section id="aba-solicitacoes" class="painel-aba" hidden>
+      <div class="card">
+        <div class="card-title">Solicitações de Documentos Recebidas</div>
+        <p class="card-subtitle">
+          Veja quais documentos foram solicitados pelos alunos e clique em "Gerar e Emitir" para aprovar e liberar com código de verificação.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Protocolo</th>
+                <th>Aluno</th>
+                <th>Documento Solicitado</th>
+                <th>Finalidade Informada</th>
+                <th>Status</th>
+                <th>Código de Verificação</th>
+                <th>Ação da Diretoria</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-solicitacoes"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABA 3: MARCAR FALTAS E JUSTIFICATIVAS -->
+    <section id="aba-faltas" class="painel-aba" hidden>
+      <div class="grid-2">
         <div class="card">
-            <h2>Faltas Registradas & Justificativas Anexadas pelos Alunos</h2>
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Aluno</th>
-                            <th>Disciplina / Data</th>
-                            <th>Aulas</th>
-                            <th>Justificativa e Anexo do Aluno</th>
-                            <th>Status</th>
-                            <th>Avaliar / Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabela-faltas"></tbody>
-                </table>
+          <div class="card-title">Marcar Falta de Aluno</div>
+          <p class="card-subtitle">Registre ausências informando se possuem justificativa/atestado ou não.</p>
+          <form id="form-registrar-falta">
+            <div class="form-group">
+              <label for="falta-aluno-id">Aluno</label>
+              <select id="falta-aluno-id" required></select>
             </div>
+            <div class="form-group">
+              <label for="falta-disciplina">Disciplina</label>
+              <select id="falta-disciplina" required>
+                <option value="Desenvolvimento Web">Desenvolvimento Web</option>
+                <option value="Banco de Dados">Banco de Dados</option>
+                <option value="Matemática Aplicada">Matemática Aplicada</option>
+                <option value="Língua Portuguesa">Língua Portuguesa</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="falta-data">Data da Ausência</label>
+                <input type="date" id="falta-data" required>
+              </div>
+              <div class="form-group">
+                <label for="falta-quantidade">Nº de Aulas</label>
+                <input type="number" id="falta-quantidade" min="1" max="10" value="2" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="falta-justificada">Possui Justificativa / Atestado?</label>
+              <select id="falta-justificada">
+                <option value="false">Não (Falta Computada na Frequência)</option>
+                <option value="true">Sim (Falta Justificada / Abonada)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="falta-motivo">Descrição da Justificativa (se houver)</label>
+              <input type="text" id="falta-motivo" placeholder="Ex.: Atestado médico entregue na secretaria">
+            </div>
+            <button type="submit" class="btn btn-accent btn-block">Registrar Falta</button>
+          </form>
         </div>
 
-        <!-- Atendimento de Solicitações dos Alunos -->
         <div class="card">
-            <h2>Solicitações de Autoatendimento dos Alunos</h2>
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Aluno</th>
-                            <th>Serviço Solicitado</th>
-                            <th>Observações</th>
-                            <th>Status</th>
-                            <th>Resposta da Diretoria</th>
-                            <th>Ação</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabela-solicitacoes"></tbody>
-                </table>
+          <div class="card-title">Histórico de Faltas e Justificativas</div>
+          <p class="card-subtitle">Gerencie as faltas lançadas e aprove justificativas enviadas pelos alunos.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Aluno</th>
+                  <th>Disciplina</th>
+                  <th>Data</th>
+                  <th>Aulas</th>
+                  <th>Situação</th>
+                  <th>Justificativa</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-faltas-diretoria"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABA 4: BOLETIM DO ALUNO ONLINE -->
+    <section id="aba-boletim" class="painel-aba" hidden>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Lançar / Atualizar Boletim Online</div>
+          <p class="card-subtitle">Publique ou edite as notas bimestrais do aluno selecionado.</p>
+          <form id="form-salvar-nota">
+            <div class="form-group">
+              <label for="boletim-aluno-id">Selecionar Aluno</label>
+              <select id="boletim-aluno-id" required></select>
             </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="nota-disciplina">Disciplina</label>
+                <input type="text" id="nota-disciplina" value="Desenvolvimento Web" required>
+              </div>
+              <div class="form-group">
+                <label for="nota-ch">Carga Horária (h)</label>
+                <input type="number" id="nota-ch" value="100" min="20" max="300" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="nota-bim1">1º Bim (0-10)</label>
+                <input type="number" id="nota-bim1" step="0.1" min="0" max="10" value="8.5" required>
+              </div>
+              <div class="form-group">
+                <label for="nota-bim2">2º Bim (0-10)</label>
+                <input type="number" id="nota-bim2" step="0.1" min="0" max="10" value="8.5" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="nota-bim3">3º Bim (0-10)</label>
+                <input type="number" id="nota-bim3" step="0.1" min="0" max="10" value="9.0" required>
+              </div>
+              <div class="form-group">
+                <label for="nota-bim4">4º Bim (0-10)</label>
+                <input type="number" id="nota-bim4" step="0.1" min="0" max="10" value="9.0" required>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Salvar no Boletim Online</button>
+          </form>
         </div>
 
-        <!-- Área invisível na tela, visível apenas ao gerar PDF/Impressão -->
-        <div id="area-impressao-pdf"></div>
-    </main>
+        <div class="card">
+          <div class="card-title">
+            <span>Boletim Online do Aluno Selecionado</span>
+            <span class="badge badge-teal" id="resumo-boletim-aluno"></span>
+          </div>
+          <p class="card-subtitle">Clique em "Editar" em qualquer disciplina para carregar as notas no formulário ao lado.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Disciplina</th>
+                  <th>C.H.</th>
+                  <th>1º Bim</th>
+                  <th>2º Bim</th>
+                  <th>3º Bim</th>
+                  <th>4º Bim</th>
+                  <th>Média</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-boletim-diretoria"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABA 5: MURAL DE AVISOS -->
+    <section id="aba-avisos" class="painel-aba" hidden>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Publicar Comunicado Escolar</div>
+          <p class="card-subtitle">Os avisos publicados aparecem imediatamente no Portal do Aluno.</p>
+          <form id="form-novo-aviso">
+            <div class="form-group">
+              <label for="aviso-titulo">Título do Comunicado</label>
+              <input type="text" id="aviso-titulo" placeholder="Ex.: Calendário de Provas Bimestrais" required>
+            </div>
+            <div class="form-group">
+              <label for="aviso-categoria">Categoria</label>
+              <select id="aviso-categoria">
+                <option value="Acadêmico">Acadêmico</option>
+                <option value="Secretaria">Secretaria</option>
+                <option value="Urgente">Urgente</option>
+                <option value="Evento">Evento</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="aviso-mensagem">Mensagem</label>
+              <textarea id="aviso-mensagem" rows="4" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Publicar no Mural</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Comunicados Ativos</div>
+          <div id="lista-avisos-diretoria"></div>
+        </div>
+      </div>
+    </section>
+  </main>
 </body>
 </html>

@@ -1,112 +1,167 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="dark">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <title>Portal do Aluno - Autoatendimento Escolar</title>
-    <link rel="stylesheet" href="css/style.css">
-    <script src="js/theme.js" defer></script>
-    <script src="js/auth.js" defer></script>
-    <script src="js/aluno.js" defer></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal do Aluno • EduPortal</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/auth.js" defer></script>
+  <script src="js/aluno.js" defer></script>
 </head>
 <body>
-    <header class="topbar">
-        <div class="brand">🎒 Portal do Aluno — Autoatendimento</div>
-        <div class="top-actions">
-            <span id="usuario-logado" style="font-size:0.9rem; color:var(--text-muted);"></span>
-            <button id="btn-tema" class="btn-secondary btn-sm" onclick="alternarTema()">☀️ Modo Claro</button>
-            <button class="btn-sm" onclick="logout()">Sair</button>
+  <div class="top-bar">
+    <span>🎓 Portal Acadêmico do Estudante — Consulta de Boletim, Frequência e Solicitação de Documentos</span>
+    <span>Matrícula: <strong data-matricula-usuario></strong></span>
+  </div>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <span class="brand-mark">E</span>
+        <div>
+          <div>EduPortal • Área do Aluno</div>
+          <small style="font-size: 0.78rem; font-weight: 400; opacity: 0.85;">Acompanhe suas notas, faltas e documentos emitidos pela Diretoria</small>
         </div>
-    </header>
+      </div>
+      <div class="header-user-area">
+        <span class="role-pill">ALUNO(A)</span>
+        <span data-nome-usuario>Estudante</span>
+        <button type="button" class="btn btn-accent btn-small" data-logout>Sair</button>
+      </div>
+    </div>
+  </header>
 
-    <main class="container">
-        <div class="grid-2">
-            <!-- 1. Autoatendimento: Solicitar Serviços -->
-            <div class="card">
-                <h2>Autoatendimento: Solicitar Serviço / Documento</h2>
-                <form id="form-solicitacao">
-                    <label>Serviço Oferecido pela Escola</label>
-                    <select id="sol-servico" required>
-                        <option value="Comprovante de Matrícula Atualizado">Comprovante de Matrícula Atualizado</option>
-                        <option value="2ª Via de Histórico Escolar">2ª Via de Histórico Escolar</option>
-                        <option value="Boletim Escolar Assinado">Boletim Escolar Assinado</option>
-                        <option value="Declaração de Frequência para Estágio">Declaração de Frequência para Estágio</option>
-                        <option value="Revisão de Notas / Prova">Revisão de Notas / Prova</option>
-                        <option value="2ª Via de Carteirinha Estudantil">2ª Via de Carteirinha Estudantil</option>
-                    </select>
-                    <label>Observações / Finalidade</label>
-                    <textarea id="sol-obs" rows="3" placeholder="Explique detalhes da sua solicitação..."></textarea>
-                    <button type="submit" style="margin-top:1rem;">Enviar Solicitação</button>
-                </form>
-            </div>
+  <main class="container" style="padding-top: 1.5rem; padding-bottom: 3rem;">
+    <section class="stats-grid no-print">
+      <div class="stat-card">
+        <div class="stat-label">Média Geral no Boletim</div>
+        <div class="stat-value" id="aluno-media-geral">0.0</div>
+      </div>
+      <div class="stat-card teal">
+        <div class="stat-label">Frequência Escolar</div>
+        <div class="stat-value" id="aluno-frequencia">100%</div>
+      </div>
+      <div class="stat-card terracotta">
+        <div class="stat-label">Total de Faltas</div>
+        <div class="stat-value" id="aluno-total-faltas">0</div>
+      </div>
+      <div class="stat-card burgundy">
+        <div class="stat-label">Documentos Prontos</div>
+        <div class="stat-value" id="aluno-docs-prontos">0</div>
+      </div>
+    </section>
 
-            <!-- 2. Calendário Escolar e Avisos -->
-            <div class="card">
-                <h2>📅 Calendário Escolar & Prazos</h2>
-                <div id="lista-calendario"></div>
-            </div>
+    <nav class="tabs-nav no-print">
+      <button type="button" class="tab-btn active" data-aba="meu-boletim">📊 Meu Boletim Online</button>
+      <button type="button" class="tab-btn" data-aba="meus-documentos">📄 Solicitar e Baixar Documentos</button>
+      <button type="button" class="tab-btn" data-aba="minhas-faltas">📅 Minhas Faltas e Justificativas</button>
+      <button type="button" class="tab-btn" data-aba="mural">📢 Mural da Escola</button>
+    </nav>
+
+    <!-- ABA 1: BOLETIM ONLINE -->
+    <section id="aba-meu-boletim" class="painel-aba">
+      <div class="card">
+        <div class="card-title">Boletim Escolar Online — Ano Letivo 2026</div>
+        <p class="card-subtitle">Confira suas notas bimestrais, carga horária e situação atualizada pela Diretoria.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Disciplina</th>
+                <th>Carga Horária</th>
+                <th>1º Bim</th>
+                <th>2º Bim</th>
+                <th>3º Bim</th>
+                <th>4º Bim</th>
+                <th>Média Final</th>
+                <th>Situação</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-meu-boletim"></tbody>
+          </table>
         </div>
+      </div>
+    </section>
 
-        <!-- 3. Meus Documentos e Boletins Prontos para Imprimir PDF -->
+    <!-- ABA 2: SOLICITAR DOCUMENTOS E VER SE FOI FEITO OU NÃO -->
+    <section id="aba-meus-documentos" class="painel-aba" hidden>
+      <div class="grid-2 no-print">
         <div class="card">
-            <h2>📄 Meus Documentos, Boletins e Histórico (Download PDF)</h2>
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Código</th>
-                            <th>Documento</th>
-                            <th>Período</th>
-                            <th>Frequência</th>
-                            <th>Média</th>
-                            <th>Resumo</th>
-                            <th>Impressão / PDF</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabela-meus-documentos"></tbody>
-                </table>
+          <div class="card-title">Solicitar Documento à Diretoria</div>
+          <p class="card-subtitle">Peça declarações ou históricos e acompanhe na tabela ao lado se já foi emitido.</p>
+          <form id="form-solicitar-doc">
+            <div class="form-group">
+              <label for="sol-tipo-doc">Documento Desejado</label>
+              <select id="sol-tipo-doc" required>
+                <option value="Declaração de Frequência">Declaração de Frequência</option>
+                <option value="Histórico Escolar">Histórico Escolar Completo</option>
+                <option value="Comprovante de Matrícula">Comprovante de Matrícula</option>
+                <option value="Boletim Escolar Oficial">Boletim Escolar Oficial</option>
+              </select>
             </div>
+            <div class="form-group">
+              <label for="sol-finalidade">Finalidade / Observação</label>
+              <textarea id="sol-finalidade" rows="3" placeholder="Ex.: Apresentação em empresa de estágio / Jovem Aprendiz" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Enviar Solicitação para a Diretoria</button>
+          </form>
         </div>
 
-        <!-- 4. Minhas Faltas e Envio de Justificativa/Atestado -->
         <div class="card">
-            <h2>🕒 Minhas Faltas & Envio de Justificativa</h2>
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Disciplina</th>
-                            <th>Data</th>
-                            <th>Aulas</th>
-                            <th>Minha Justificativa / Anexo</th>
-                            <th>Status na Diretoria</th>
-                            <th>Ação</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabela-minhas-faltas"></tbody>
-                </table>
-            </div>
+          <div class="card-title">Andamento das Minhas Solicitações</div>
+          <p class="card-subtitle">Quando a Diretoria emitir o documento, o botão "Visualizar / Imprimir" ficará disponível com o código de verificação.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Documento</th>
+                  <th>Finalidade</th>
+                  <th>Data do Pedido</th>
+                  <th>Foi feito? (Status)</th>
+                  <th>Código de Verificação</th>
+                  <th>Ação</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-meus-documentos"></tbody>
+            </table>
+          </div>
         </div>
+      </div>
 
-        <!-- 5. Acompanhamento de Solicitações -->
-        <div class="card">
-            <h2>📋 Minhas Solicitações de Autoatendimento</h2>
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Serviço</th>
-                            <th>Observações</th>
-                            <th>Status</th>
-                            <th>Retorno da Diretoria</th>
-                            <th>Ação</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabela-minhas-solicitacoes"></tbody>
-                </table>
-            </div>
+      <div id="visualizacao-documento-aluno" hidden></div>
+    </section>
+
+    <!-- ABA 3: MINHAS FALTAS E JUSTIFICATIVAS -->
+    <section id="aba-minhas-faltas" class="painel-aba" hidden>
+      <div class="card">
+        <div class="card-title">Extrato de Frequência e Faltas</div>
+        <p class="card-subtitle">Veja suas ausências registradas e envie justificativa/atestado para análise da Diretoria.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Disciplina</th>
+                <th>Data da Falta</th>
+                <th>Quantidade</th>
+                <th>Status da Justificativa</th>
+                <th>Justificativa Registrada</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-minhas-faltas"></tbody>
+          </table>
         </div>
+      </div>
+    </section>
 
-        <div id="area-impressao-pdf"></div>
-    </main>
+    <!-- ABA 4: MURAL DE AVISOS -->
+    <section id="aba-mural" class="painel-aba" hidden>
+      <div class="card">
+        <div class="card-title">Mural de Avisos da Diretoria</div>
+        <p class="card-subtitle">Comunicados oficiais publicados pela secretaria e direção escolar.</p>
+        <div id="mural-avisos-aluno"></div>
+      </div>
+    </section>
+  </main>
 </body>
 </html>

@@ -1,86 +1,105 @@
 const pool = require('../database/conexao');
 
-exports.listar = async (req, res) => {
+// READ - Listar faltas (todas para diretoria ou apenas as do aluno logado)
+async function listarFaltas(req, res, next) {
     try {
-        let query = `
-            SELECT f.*, u.nome AS aluno_nome, u.matricula AS aluno_matricula, u.turma AS aluno_turma
-            FROM faltas f
-            JOIN usuarios u ON f.aluno_id = u.id
-        `;
+        let sql = `SELECT f.*, u.nome AS aluno_nome, u.matricula, u.turma
+                   FROM faltas f INNER JOIN usuarios u ON u.id = f.aluno_id`;
         const params = [];
 
-        if (req.usuario.perfil === 'aluno') {
-            query += ' WHERE f.aluno_id = ?';
+        if (req.usuario.nivel === 'aluno') {
+            sql += ' WHERE f.aluno_id = ?';
             params.push(req.usuario.id);
+        } else if (req.query.aluno_id) {
+            sql += ' WHERE f.aluno_id = ?';
+            params.push(Number(req.query.aluno_id));
         }
 
-        query += ' ORDER BY f.data_falta DESC';
-        const [rows] = await pool.query(query, params);
-        res.json(rows);
+        sql += ' ORDER BY f.data_falta DESC, f.id DESC';
+        const [linhas] = await pool.execute(sql, params);
+        return res.json(linhas);
     } catch (erro) {
-        res.status(500).json({ erro: 'Erro ao listar faltas.' });
+        next(erro);
     }
-};
+}
 
-exports.registrarFalta = async (req, res) => {
+// CREATE - Diretoria registra falta para um aluno (com ou sem justificativa imediata)
+async function registrarFalta(req, res, next) {
     try {
-        const { aluno_id, disciplina, data_falta, quantidade_aulas } = req.body;
+        const { aluno_id, disciplina, data_falta, quantidade, justificada, justificativa } = req.body;
         if (!aluno_id || !disciplina || !data_falta) {
-            return res.status(400).json({ erro: 'Aluno, disciplina e data são obrigatórios.' });
+            return res.status(400).json({ mensagem: 'Aluno, disciplina e data da falta são obrigatórios.' });
         }
 
-        const [result] = await pool.query(
-            'INSERT INTO faltas (aluno_id, disciplina, data_falta, quantidade_aulas) VALUES (?, ?, ?, ?)',
-            [aluno_id, disciplina, data_falta, quantidade_aulas || 1]
-        );
-        res.status(201).json({ mensagem: 'Falta registrada com sucesso!', id: result.insertId });
-    } catch (erro) {
-        res.status(500).json({ erro: 'Erro ao registrar falta.' });
-    }
-};
+        const qtd = Math.max(1, Number(quantidade || 1));
+        const possuiJust = Boolean(justificada);
+        const statusJust = possuiJust ? 'Abonada' : (justificativa ? 'Em análise' : 'Sem justificativa');
 
-exports.enviarJustificativaAluno = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { justificativa_texto, anexo_justificativa } = req.body;
-
-        if (!justificativa_texto) {
-            return res.status(400).json({ erro: 'Descreva o motivo da justificativa.' });
-        }
-
-        const [falta] = await pool.query('SELECT * FROM faltas WHERE id = ? AND aluno_id = ?', [id, req.usuario.id]);
-        if (falta.length === 0) {
-            return res.status(404).json({ erro: 'Registro de falta não encontrado para este aluno.' });
-        }
-
-        await pool.query(
-            `UPDATE faltas SET justificativa_texto = ?, anexo_justificativa = ?, status_justificativa = 'Pendente' WHERE id = ?`,
-            [justificativa_texto, anexo_justificativa || 'comprovante_anexo.pdf', id]
+        const [resultado] = await pool.execute(
+            `INSERT INTO faltas (aluno_id, disciplina, data_falta, quantidade, justificada, justificativa, status_justificativa)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [Number(aluno_id), disciplina.trim(), data_falta, qtd, possuiJust, justificativa || null, statusJust]
         );
 
-        res.json({ mensagem: 'Justificativa e anexo enviados para análise da diretoria!' });
+        return res.status(201).json({
+            mensagem: 'Falta registrada com sucesso!',
+            id: resultado.insertId
+        });
     } catch (erro) {
-        res.status(500).json({ erro: 'Erro ao enviar justificativa.' });
+        next(erro);
     }
-};
+}
 
-exports.avaliarJustificativaDiretoria = async (req, res) => {
+// UPDATE - Aluno envia justificativa OU Diretoria abona/indefere falta
+async function atualizarJustificativa(req, res, next) {
     try {
-        const { id } = req.params;
-        const { status_justificativa } = req.body;
+        const id = Number(req.params.id);
+        const [faltas] = await pool.execute('SELECT * FROM faltas WHERE id = ?', [id]);
+        if (faltas.length === 0) {
+            return res.status(404).json({ mensagem: 'Registro de falta não encontrado.' });
+        }
 
-        await pool.query('UPDATE faltas SET status_justificativa = ? WHERE id = ?', [status_justificativa, id]);
-        res.json({ mensagem: `Status da falta atualizado para: ${status_justificativa}` });
+        const falta = faltas[0];
+
+        if (req.usuario.nivel === 'aluno') {
+            if (falta.aluno_id !== req.usuario.id) {
+                return res.status(403).json({ mensagem: 'Você só pode justificar suas próprias faltas.' });
+            }
+            const { justificativa } = req.body;
+            if (!justificativa || justificativa.trim().length < 5) {
+                return res.status(400).json({ mensagem: 'Descreva o motivo ou atestado com pelo menos 5 caracteres.' });
+            }
+            await pool.execute(
+                "UPDATE faltas SET justificativa = ?, status_justificativa = 'Em análise' WHERE id = ?",
+                [justificativa.trim(), id]
+            );
+            return res.json({ mensagem: 'Justificativa enviada para análise da Diretoria!' });
+        } else {
+            // Diretoria aprova (abona) ou reprova justificativa
+            const { justificada, status_justificativa, justificativa } = req.body;
+            const abonada = Boolean(justificada) || status_justificativa === 'Abonada';
+            const novoStatus = status_justificativa || (abonada ? 'Abonada' : 'Sem justificativa');
+
+            await pool.execute(
+                'UPDATE faltas SET justificada = ?, status_justificativa = ?, justificativa = COALESCE(?, justificativa) WHERE id = ?',
+                [abonada, novoStatus, justificativa !== undefined ? justificativa : null, id]
+            );
+            return res.json({ mensagem: 'Status da falta atualizado pela Diretoria!' });
+        }
     } catch (erro) {
-        res.status(500).json({ erro: 'Erro ao avaliar justificativa.' });
+        next(erro);
     }
-};
+}
 
-exports.excluir = async (req, res) => {
+// DELETE - Diretoria remove registro de falta
+async function excluirFalta(req, res, next) {
     try {
-        await pool.query('DELETE FROM faltas WHERE id = ?', [req.params.id]);
-        res.json({ mensagem: 'Registro de falta removido.' });
+        const id = Number(req.params.id);
+        await pool.execute('DELETE FROM faltas WHERE id = ?', [id]);
+        return res.json({ mensagem: 'Falta removida com sucesso.' });
     } catch (erro) {
-        res.status(500).json({ erro: 'Erro ao remover falta.' });
+        next(erro);
     }
-};
+}
+
+module.exports = { listarFaltas, registrarFalta, atualizarJustificativa, excluirFalta };

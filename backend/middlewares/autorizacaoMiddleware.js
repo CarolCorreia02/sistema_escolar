@@ -1,8 +1,16 @@
-module.exports = (perfisPermitidos) => {
-    return (req, res, next) => {
-        if (!req.usuario || !perfisPermitidos.includes(req.usuario.perfil)) {
-            return res.status(403).json({ erro: 'Acesso negado: seu perfil não possui permissão para esta operação.' });
+// Controle de permissões por nível ('diretoria' ou 'aluno')
+function autorizacaoMiddleware(...niveisPermitidos) {
+    return function autorizar(req, res, next) {
+        if (!req.usuario) {
+            return res.status(401).json({ mensagem: 'Autenticação necessária.' });
+        }
+        if (!niveisPermitidos.includes(req.usuario.nivel)) {
+            return res.status(403).json({
+                mensagem: 'Acesso negado: seu perfil (' + req.usuario.nivel + ') não possui permissão para esta operação.'
+            });
         }
         next();
     };
-};
+}
+
+module.exports = autorizacaoMiddleware;

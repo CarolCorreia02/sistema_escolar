@@ -1,20 +1,27 @@
 {
-  "name": "backend",
+  "name": "sistema-escolar-api",
   "version": "1.0.0",
-  "description": "",
+  "private": true,
+  "description": "Sistema Escolar (EduPortal) com Node.js, Express, MySQL, JWT e controle de permissões (Diretoria e Aluno).",
   "main": "server.js",
-"scripts": {
+  "scripts": {
     "start": "node server.js",
+    "dev": "node --watch server.js",
     "seed": "node database/seed.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.15.3"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
-  "dependencies": {
-    "cors": "^2.8.6",
-    "dotenv": "^18.0.9",
-    "express": "^5.3.0",
-    "mysql2": "^3.24.6"
-  }
+  "type": "commonjs"
 }

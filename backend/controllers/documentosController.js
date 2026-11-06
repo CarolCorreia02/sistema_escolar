@@ -1,83 +1,189 @@
 const pool = require('../database/conexao');
+const { montarFichaAluno } = require('./alunosController');
 
-exports.listar = async (req, res) => {
+const TIPOS_VALIDOS = [
+    'Declaração de Frequência',
+    'Histórico Escolar',
+    'Comprovante de Matrícula',
+    'Boletim Escolar Oficial'
+];
+
+function gerarCodigoAutenticidade(nomeAluno = 'EDU') {
+    const prefixo = nomeAluno.replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase() || 'DOC';
+    const aleatorio = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `EDU-2026-${prefixo}${aleatorio}`;
+}
+
+// READ - Listar solicitações e documentos emitidos
+async function listarDocumentos(req, res, next) {
     try {
-        let query = `
-            SELECT d.*, u.nome AS aluno_nome, u.matricula AS aluno_matricula, u.turma AS aluno_turma, dir.nome AS diretor_nome
-            FROM documentos d
-            JOIN usuarios u ON d.aluno_id = u.id
-            JOIN usuarios dir ON d.diretor_id = dir.id
-        `;
+        let sql = `SELECT d.*, u.nome AS aluno_nome, u.matricula, u.turma, u.cpf
+                   FROM documentos d INNER JOIN usuarios u ON u.id = d.aluno_id`;
         const params = [];
 
-        if (req.usuario.perfil === 'aluno') {
-            query += ' WHERE d.aluno_id = ?';
+        if (req.usuario.nivel === 'aluno') {
+            sql += ' WHERE d.aluno_id = ?';
             params.push(req.usuario.id);
+        } else if (req.query.aluno_id) {
+            sql += ' WHERE d.aluno_id = ?';
+            params.push(Number(req.query.aluno_id));
         }
 
-        query += ' ORDER BY d.data_emissao DESC';
-        const [rows] = await pool.query(query, params);
-        res.json(rows);
+        sql += ' ORDER BY d.solicitado_em DESC, d.id DESC';
+        const [linhas] = await pool.execute(sql, params);
+        return res.json(linhas);
     } catch (erro) {
-        res.status(500).json({ erro: 'Erro ao buscar documentos.', detalhes: erro.message });
+        next(erro);
     }
-};
+}
 
-exports.criar = async (req, res) => {
+// CREATE (Aluno solicita documento OU Diretoria emite automaticamente na hora)
+async function criarOuEmitirDocumento(req, res, next) {
     try {
-        const { aluno_id, tipo, periodo_letivo, frequencia_percentual, media_geral, conteudo_detalhado } = req.body;
-        if (!aluno_id || !tipo || !periodo_letivo || !conteudo_detalhado) {
-            return res.status(400).json({ erro: 'Preencha todos os campos obrigatórios do documento.' });
+        const { aluno_id, tipo_documento, finalidade, observacao_diretoria } = req.body;
+        if (!TIPOS_VALIDOS.includes(tipo_documento)) {
+            return res.status(400).json({ mensagem: 'Selecione um tipo de documento oficial válido.' });
         }
 
-        const freq = parseFloat(frequencia_percentual ?? 100);
-        if (freq < 0 || freq > 100) {
-            return res.status(400).json({ erro: 'Regra de negócio: A frequência deve estar entre 0% e 100%.' });
+        if (req.usuario.nivel === 'aluno') {
+            const [resultado] = await pool.execute(
+                `INSERT INTO documentos (aluno_id, tipo_documento, finalidade, status)
+                 VALUES (?, ?, ?, 'Pendente')`,
+                [req.usuario.id, tipo_documento, finalidade ? finalidade.trim() : 'Solicitação via Portal do Aluno']
+            );
+            return res.status(201).json({
+                mensagem: 'Documento solicitado à Diretoria! Acompanhe o status na sua lista.',
+                id: resultado.insertId
+            });
+        } else {
+            // Diretoria gera e emite automaticamente um documento baseado nos dados do aluno cadastrado
+            const idAluno = Number(aluno_id);
+            const ficha = await montarFichaAluno(idAluno);
+            if (!ficha) {
+                return res.status(404).json({ mensagem: 'Aluno não encontrado para emissão.' });
+            }
+
+            const codigo = gerarCodigoAutenticidade(ficha.nome);
+            const [resultado] = await pool.execute(
+                `INSERT INTO documentos
+                 (aluno_id, tipo_documento, finalidade, status, codigo_verificacao, observacao_diretoria, dados_snapshot, emitido_em)
+                 VALUES (?, ?, ?, 'Emitido', ?, ?, ?, NOW())`,
+                [
+                    idAluno,
+                    tipo_documento,
+                    finalidade || 'Emissão direta pela Secretaria/Diretoria',
+                    codigo,
+                    observacao_diretoria || 'Documento oficial gerado automaticamente com dados consolidados do sistema.',
+                    JSON.stringify(ficha)
+                ]
+            );
+
+            return res.status(201).json({
+                mensagem: 'Documento gerado e emitido com código de verificação ' + codigo,
+                id: resultado.insertId,
+                codigo_verificacao: codigo,
+                ficha
+            });
         }
-
-        const codigo_validacao = 'DOC-' + new Date().getFullYear() + '-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-
-        const [result] = await pool.query(
-            `INSERT INTO documentos (aluno_id, diretor_id, tipo, periodo_letivo, frequencia_percentual, media_geral, conteudo_detalhado, codigo_validacao)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            [aluno_id, req.usuario.id, tipo, periodo_letivo, freq, media_geral || null, conteudo_detalhado, codigo_validacao]
-        );
-
-        res.status(201).json({ mensagem: 'Documento oficial gerado com sucesso!', id: result.insertId, codigo_validacao });
     } catch (erro) {
-        res.status(500).json({ erro: 'Erro ao emitir documento.', detalhes: erro.message });
+        next(erro);
     }
-};
+}
 
-exports.atualizar = async (req, res) => {
+// UPDATE - Diretoria aprova/emite um documento que estava Pendente (ou recusa)
+async function atualizarStatusDocumento(req, res, next) {
     try {
-        const { id } = req.params;
-        const { tipo, periodo_letivo, frequencia_percentual, media_geral, conteudo_detalhado } = req.body;
+        const id = Number(req.params.id);
+        const { status, observacao_diretoria } = req.body;
 
-        const [result] = await pool.query(
-            `UPDATE documentos SET tipo = ?, periodo_letivo = ?, frequencia_percentual = ?, media_geral = ?, conteudo_detalhado = ?
+        const [docs] = await pool.execute('SELECT * FROM documentos WHERE id = ?', [id]);
+        if (docs.length === 0) {
+            return res.status(404).json({ mensagem: 'Solicitação de documento não encontrada.' });
+        }
+
+        const doc = docs[0];
+        const ficha = await montarFichaAluno(doc.aluno_id);
+        if (!ficha) {
+            return res.status(404).json({ mensagem: 'Dados do aluno não encontrados.' });
+        }
+
+        if (status === 'Recusado') {
+            await pool.execute(
+                "UPDATE documentos SET status = 'Recusado', observacao_diretoria = ? WHERE id = ?",
+                [observacao_diretoria || 'Solicitação indeferida pela secretaria.', id]
+            );
+            return res.json({ mensagem: 'Solicitação marcada como recusada.' });
+        }
+
+        const codigo = doc.codigo_verificacao || gerarCodigoAutenticidade(ficha.nome);
+        await pool.execute(
+            `UPDATE documentos
+             SET status = 'Emitido',
+                 codigo_verificacao = ?,
+                 observacao_diretoria = ?,
+                 dados_snapshot = ?,
+                 emitido_em = NOW()
              WHERE id = ?`,
-            [tipo, periodo_letivo, frequencia_percentual, media_geral || null, conteudo_detalhado, id]
+            [
+                codigo,
+                observacao_diretoria || 'Documento conferido e emitido digitalmente pela Diretoria.',
+                JSON.stringify(ficha),
+                id
+            ]
         );
 
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ erro: 'Documento não encontrado.' });
-        }
-        res.json({ mensagem: 'Documento atualizado com sucesso!' });
+        return res.json({
+            mensagem: 'Documento emitido e liberado para o aluno! Código: ' + codigo,
+            codigo_verificacao: codigo,
+            ficha
+        });
     } catch (erro) {
-        res.status(500).json({ erro: 'Erro ao atualizar documento.' });
+        next(erro);
     }
-};
+}
 
-exports.excluir = async (req, res) => {
+// SISTEMA PÚBLICO DE VERIFICAÇÃO DE AUTENTICIDADE DE DOCUMENTOS
+async function verificarAutenticidade(req, res, next) {
     try {
-        const { id } = req.params;
-        const [result] = await pool.query('DELETE FROM documentos WHERE id = ?', [id]);
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ erro: 'Documento não encontrado.' });
+        const codigo = String(req.params.codigo || '').trim().toUpperCase();
+        if (!codigo) {
+            return res.status(400).json({ mensagem: 'Informe o código de verificação do documento.' });
         }
-        res.json({ mensagem: 'Documento excluído com sucesso!' });
+
+        const [docs] = await pool.execute(
+            `SELECT d.id, d.aluno_id, d.tipo_documento, d.finalidade, d.status,
+                    d.codigo_verificacao, d.observacao_diretoria, d.solicitado_em, d.emitido_em,
+                    u.nome AS aluno_nome, u.matricula, u.turma
+             FROM documentos d
+             INNER JOIN usuarios u ON u.id = d.aluno_id
+             WHERE d.codigo_verificacao = ? AND d.status = 'Emitido'`,
+            [codigo]
+        );
+
+        if (docs.length === 0) {
+            return res.status(404).json({
+                valido: false,
+                mensagem: 'Nenhum documento ativo encontrado com o código ' + codigo + '.'
+            });
+        }
+
+        const doc = docs[0];
+        const fichaAtual = await montarFichaAluno(doc.aluno_id);
+
+        return res.json({
+            valido: true,
+            mensagem: 'Documento autêntico e válido emitido pelo Sistema Escolar EduPortal.',
+            documento: doc,
+            ficha: fichaAtual
+        });
     } catch (erro) {
-        res.status(500).json({ erro: 'Erro ao excluir documento.' });
+        next(erro);
     }
+}
+
+module.exports = {
+    listarDocumentos,
+    criarOuEmitirDocumento,
+    atualizarStatusDocumento,
+    verificarAutenticidade
 };

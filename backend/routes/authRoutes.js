@@ -1,11 +1,10 @@
 const express = require('express');
-const router = express.Router();
-const authController = require('../controllers/authController');
+const controller = require('../controllers/authController');
 const autenticar = require('../middlewares/autenticacaoMiddleware');
-const autorizar = require('../middlewares/autorizacaoMiddleware');
+const router = express.Router();
 
-router.post('/cadastro', authController.cadastrar);
-router.post('/login', authController.login);
-router.get('/alunos', autenticar, autorizar(['diretoria']), authController.listarAlunos);
+router.post('/cadastro', controller.cadastrar);
+router.post('/login', controller.login);
+router.get('/perfil', autenticar, controller.perfil);
 
 module.exports = router;

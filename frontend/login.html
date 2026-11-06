@@ -1,35 +1,91 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="dark">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <title>Login - Portal Escolar</title>
-    <link rel="stylesheet" href="css/style.css">
-    <script src="js/theme.js" defer></script>
-    <script src="js/auth.js" defer></script>
-    <script src="js/login.js" defer></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Entrar • EduPortal Sistema Escolar</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/auth.js" defer></script>
+  <script src="js/login.js" defer></script>
 </head>
 <body>
-    <header class="topbar">
-        <div class="brand">🎓 EduDocs & Portal Escolar</div>
-        <div class="top-actions">
-            <button id="btn-tema" class="btn-secondary" onclick="alternarTema()">☀️ Modo Claro</button>
+  <div class="top-bar">
+    <span>🎓 Colégio Técnico EduPortal — Gestão Escolar, Boletim Online e Emissão Automática de Documentos</span>
+    <span>Autenticação JWT & Verificação Digital</span>
+  </div>
+
+  <div class="auth-layout">
+    <aside class="auth-hero">
+      <div>
+        <div class="brand">
+          <span class="brand-mark">E</span>
+          <span>EduPortal</span>
         </div>
-    </header>
-    <main class="container" style="max-width: 440px; margin-top: 4rem;">
+        <h1 style="font-size: 2.3rem; margin-top: 2rem; line-height: 1.2;">
+          Secretaria Digital, Frequência e Boletim em um só lugar.
+        </h1>
+        <p style="margin-top: 1rem; opacity: 0.9; font-size: 1rem;">
+          A Diretoria gera automaticamente documentos oficiais baseados no cadastro dos alunos, gerencia faltas com ou sem justificativa e publica notas online. Os alunos acompanham seu boletim e solicitam declarações em tempo real.
+        </p>
+      </div>
+
+      <!-- SISTEMA PÚBLICO DE VERIFICAÇÃO DE DOCUMENTOS ESCOLARES -->
+      <div class="card" style="background: rgba(255,255,255,0.96); color: var(--text-main); margin-top: 2rem; margin-bottom: 0;">
+        <div class="card-title">🔍 Sistema de Verificação de Documentos</div>
+        <p class="card-subtitle" style="margin-bottom: 0.75rem;">
+          Possui um Comprovante de Matrícula, Declaração de Frequência ou Histórico emitido pela escola? Digite o código para validar sua autenticidade no MySQL:
+        </p>
+        <form id="form-verificar-doc" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <input type="text" id="codigo-verificacao" placeholder="Ex.: EDU-2026-LUC9A1" style="flex: 1;" required>
+          <button type="submit" class="btn btn-teal">Verificar Código</button>
+        </form>
+        <div id="resultado-verificacao" hidden></div>
+      </div>
+    </aside>
+
+    <main class="auth-panel">
+      <div class="auth-box">
         <div class="card">
-            <h2>Acesso ao Sistema</h2>
-            <form id="form-login">
-                <label>E-mail Institucional</label>
-                <input type="email" id="email" required placeholder="Ex: diretoria@escola.edu.br">
-                <label>Senha</label>
-                <input type="password" id="senha" required placeholder="******">
-                <button type="submit" style="width:100%; margin-top:1.2rem;">Entrar</button>
-            </form>
-            <p id="msg-erro" style="color:var(--accent); margin-top:0.8rem; font-size:0.9rem;"></p>
-            <p style="margin-top:1rem; font-size:0.9rem; color:var(--text-muted);">
-                Não tem conta? <a href="cadastro.html" style="color:var(--accent);">Cadastre-se aqui</a>
+          <div class="card-title">Acesso ao Portal Escolar</div>
+          <p class="card-subtitle">Entre com suas credenciais da Diretoria ou de Aluno.</p>
+
+          <div id="mensagem-login" class="alert-box" hidden></div>
+
+          <form id="form-login">
+            <div class="form-group">
+              <label for="email">E-mail Institucional</label>
+              <input type="email" id="email" placeholder="seuemail@escola.com" required>
+            </div>
+            <div class="form-group">
+              <label for="senha">Senha</label>
+              <input type="password" id="senha" placeholder="••••••••" required>
+            </div>
+            <button type="submit" id="btn-entrar" class="btn btn-primary btn-block">Entrar no Portal</button>
+          </form>
+
+          <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 600;">
+              ⚡ Acesso Rápido para Testes (Senha: Didatica@123):
             </p>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button type="button" class="btn btn-outline btn-small" data-demo-email="diretoria@escola.com">
+                Preencher Diretoria
+              </button>
+              <button type="button" class="btn btn-outline btn-small" data-demo-email="lucas@aluno.com">
+                Preencher Aluno (Lucas)
+              </button>
+              <button type="button" class="btn btn-outline btn-small" data-demo-email="mariana@aluno.com">
+                Preencher Aluna (Mariana)
+              </button>
+            </div>
+          </div>
+
+          <p style="text-align: center; margin-top: 1.25rem; font-size: 0.88rem;">
+            Ainda não possui conta? <a href="cadastro.html" style="color: var(--terracotta); font-weight: 700;">Criar conta de Aluno ou Diretoria</a>
+          </p>
         </div>
+      </div>
     </main>
+  </div>
 </body>
 </html>

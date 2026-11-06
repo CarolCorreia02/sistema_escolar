@@ -11,14 +11,14 @@ Sistema web completo desenvolvido em **Node.js, Express, MySQL e JavaScript (DOM
 ## 2. Perfis de Usuário e Controle de Acesso (JWT)
 
 1. **Diretoria (`diretoria`):**
-   - Gerador automático de documentos oficiais (*Declaração de Frequência*, *Histórico Escolar*, *Comprovante de Matrícula* e *Boletim Oficial*) a partir dos dados cadastrados do aluno.
+   - Gerador automático de documentos oficiais a partir dos dados cadastrados do aluno.
    - Aprovação e emissão de documentos solicitados pelos alunos (gerando código único de verificação `EDU-2026-XXXXXX`).
-   - Registro de faltas (marcando se possuem justificativa ou não) e abono de justificativas enviadas pelos estudantes.
+   - Registro de faltas e abono de justificativas enviadas pelos estudantes.
    - Lançamento e edição do Boletim Online por disciplina e bimestre.
    - Publicação de comunicados no Mural Escolar.
 2. **Aluno (`aluno`):**
-   - Visualização do Boletim Online (notas dos 4 bimestres, média calculada e situação).
-   - Solicitação de documentos para a diretoria e acompanhamento em tempo real se o documento foi feito (`Pendente` ou `Emitido`).
+   - Visualização do Boletim Online.
+   - Solicitação de documentos para a diretoria e acompanhamento em tempo real se o documento foi feito.
    - Visualização e impressão dos documentos emitidos com selo de verificação.
    - Consulta de faltas e envio de justificativa/atestado para análise da diretoria.
 
@@ -30,11 +30,7 @@ Sistema web completo desenvolvido em **Node.js, Express, MySQL e JavaScript (DOM
 
 ### Passo 2 — Configurar e Rodar o Back-end no VS Code
 1. Abra o terminal do VS Code na pasta `backend`:
-   ```bash
-   cd backend
-   npm install
-   ```
-2. Crie um arquivo `.env` dentro da pasta `backend` (copiando o conteúdo de `.env.example`) e ajuste `DB_PASSWORD` com a senha do seu MySQL Workbench:
+2. Ajuste o .env `DB_PASSWORD` com a senha do seu MySQL Workbench:
    ```env
    PORT=3000
    DB_HOST=localhost
@@ -46,10 +42,10 @@ Sistema web completo desenvolvido em **Node.js, Express, MySQL e JavaScript (DOM
    CODIGO_DIRETORIA=DIRET2026
    ```
 3. Inicie o servidor:
-   ```bash
+   ```
    npm start
    ```
-4. Acesse no navegador: **`http://localhost:3000`** (ou abra `frontend/login.html` com a extensão Live Server).
+4. Acesse no navegador: **`http://localhost:3000`** (ou abra `index.html` com a extensão Live Server).
 
 ## 4. Credenciais de Teste Prontas
 
